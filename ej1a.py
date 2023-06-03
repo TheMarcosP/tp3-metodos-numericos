@@ -1,94 +1,57 @@
-import numpy as np
 import os
+import numpy as np
 from PIL import Image
+import matplotlib.pyplot as plt
 
-directorio_imagenes = "dataset_imagenes"
+# Directorio que contiene las imágenes
+directorio_imagenes = 'dataset_imagenes'
 
-# Obtener la lista de archivos en el directorio
-lista_archivos = os.listdir(directorio_imagenes)
-
+# Lista para almacenar los vectores de las imágenes
 vectores_imagenes = []
 
-# Recorrer cada archivo de imagen en el directorio
-for archivo in lista_archivos:
-    ruta_imagen = os.path.join(directorio_imagenes, archivo)
-    imagen = Image.open(ruta_imagen)
+# Obtener la lista de archivos en el directorio
+archivos = os.listdir(directorio_imagenes)
 
-    # Convertir la imagen en una matriz NumPy
-    matriz_imagen = np.array(imagen)
+# Iterar sobre los archivos del directorio
+for archivo in archivos:
+    # Comprobar si el archivo es una imagen
+    if archivo.endswith('.png') or archivo.endswith('.jpg') or archivo.endswith('.jpeg'):
+        # Leer la imagen utilizando la biblioteca PIL
+        ruta_imagen = os.path.join(directorio_imagenes, archivo)
+        imagen = Image.open(ruta_imagen)
+        
+        # Convertir la imagen a un arreglo de NumPy
+        arreglo_imagen = np.array(imagen)
+        
+        # Apilar el arreglo de la imagen como un vector y añadirlo a la lista
+        vector_imagen = arreglo_imagen.flatten()
+        vectores_imagenes.append(vector_imagen)
 
-    p = matriz_imagen.shape[0]  # asumiendo que la imagen es cuadrada (p x p)
-    
-    # Transformar la imagen en un vector
-    vector_imagen = matriz_imagen.reshape(p*p)
-    
-    vectores_imagenes.append(vector_imagen)
+# Apilar los vectores de imágenes en una matriz de NumPy
+matriz_imagenes = np.column_stack(vectores_imagenes)
 
-# Convertir la lista de vectores en un arreglo de NumPy
-vectores_imagenes = np.array(vectores_imagenes)
+# Realizar la descomposición SVD de la matriz
+U, S, V = np.linalg.svd(matriz_imagenes)
 
-U, S, Vt = np.linalg.svd(vectores_imagenes)
+# Número de primeras y últimas dimensiones a visualizar
+p = 30
 
-#plot in semilog S
-# import matplotlib.pyplot as plt
-# plt.semilogy(S)
+# Visualizar las primeras dimensiones (autovectores)
+plt.figure(figsize=(10, 4))
+for i in range(p):
+    plt.subplot(2, p, i+1)
+    autovector = U[:, i].reshape(arreglo_imagen.shape)
+    plt.imshow(autovector, cmap='gray')
+    plt.axis('off')
+    plt.title(f'Autovector {i+1}')
 
-# plt.plot(S)
-# plt.show()
+# Visualizar las últimas dimensiones (autovectores)
+for i in range(p):
+    plt.subplot(2, p, p+i+1)
+    autovector = U[:, -i-1].reshape(arreglo_imagen.shape)
+    plt.imshow(autovector, cmap='gray')
+    plt.axis('off')
+    plt.title(f'Autovector {matriz_imagenes.shape[1]-i}')
 
-# now compress the images
-k = 16
-# keep only the first k singular values
-S = S[:k]
-# keep only the first k columns of U
-U = U[:,:k]
-# keep only the first k rows of Vt
-Vt = Vt[:k,:]
-
-# reconstruct the images
-for i in range(len(lista_archivos)):
-    vector_imagen = vectores_imagenes[i,:]
-    # project the image vector onto the first k singular vectors
-    vector_imagen_comprimido = np.dot(vector_imagen, Vt.T)
-    # reconstruct
-    vector_imagen_reconstruido = np.dot(vector_imagen_comprimido, Vt)
-    matriz_imagen_reconstruido = vector_imagen_reconstruido.reshape(p,p)
-
-    imagen_reconstruido = Image.fromarray(matriz_imagen_reconstruido)
-    imagen_reconstruido = imagen_reconstruido.convert("RGB")
-    imagen_reconstruido.save("imagen_reconstruido_" + str(i) + ".png")
-
-
-# keep the last k singular values
-k = 10
-# keep only the last k singular values
-S = S[-k:]
-# keep only the first k columns of U
-U = U[:,:k]
-# keep only the first k rows of Vt
-Vt = Vt[-k:,:]
-
-# reconstruct the images
-for i in range(len(lista_archivos)):
-    vector_imagen = vectores_imagenes[i,:]
-    # project the image vector onto the last k singular vectors
-    vector_imagen_comprimido = np.dot(vector_imagen, Vt.T)
-    # reconstruct
-    vector_imagen_reconstruido = np.dot(vector_imagen_comprimido, Vt)
-    matriz_imagen_reconstruido = vector_imagen_reconstruido.reshape(p,p)
-
-    imagen_reconstruido = Image.fromarray(matriz_imagen_reconstruido)
-    imagen_reconstruido = imagen_reconstruido.convert("RGB")
-    imagen_reconstruido.save("imagen_reconstruido_ultimos" + str(i) + ".png")
-
-
-
-
-
-
-
-
-
-
-
-# pca es hacer svd y ver las columnas de esa matriz
+plt.tight_layout()
+plt.show()
