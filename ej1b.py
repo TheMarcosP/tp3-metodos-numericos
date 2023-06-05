@@ -208,25 +208,25 @@ def plot_compresion_lost_mean(folderpath, k=10, savename='img_comprimida.pdf'):
 
 if __name__ == '__main__':
 
-    # file_path = "dataset_imagenes\img02.jpeg"
+    file_path = "dataset_imagenes\img02.jpeg"
 
-    # img_original = Image.open(file_path)
+    img_original = Image.open(file_path)
 
-    # # compress the image with k = 4
-    # mat_comprimida = compress_image(file_path, 3)
+    # compress the image with k = 4
+    mat_comprimida = compress_image(file_path, 3)
 
     # # primera figura
     # compare_compresion_save(mat_comprimida, img_original, 'comparacion_imagenes_4_k3.pdf')
 
     # # segunda figura
-    # #plot singular values and save as pdf
-    # U, S, VT = np.linalg.svd(img_original)
-    # plt.plot(S)
-    # # plt.semilogy()
-    # plt.xlabel('índice')
-    # plt.ylabel('valor singular')
-    # plt.savefig('singular_values_1.pdf', format='pdf', dpi=1200)
-    # plt.close()
+    #plot singular values and save as pdf
+    U, S, VT = np.linalg.svd(img_original)
+    plt.plot(S)
+    # plt.semilogy()
+    plt.xlabel('índice')
+    plt.ylabel('valor singular')
+    plt.savefig('singular_values_1.pdf', format='pdf', dpi=1200)
+    plt.close()
     
 
 
@@ -238,4 +238,7 @@ if __name__ == '__main__':
     # plot_compresion_lost_mean("dataset_imagenes/", 28, 'error_de_compresion_mean_1.pdf')
 
     # quinta figura
-    plot_images_from_folder("dataset_imagenes/", 4, 0.4, 'imagenes_dataset.pdf')
+    # plot_images_from_folder("dataset_imagenes/", 4, 0.4, 'imagenes_dataset.pdf')
+
+    # sexta figura
+    
