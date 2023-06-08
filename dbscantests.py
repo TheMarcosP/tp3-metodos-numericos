@@ -25,13 +25,13 @@ eigenvalues, eigenvectors = np.linalg.eig(C)
 V = np.array(eigenvectors)
 T = A @ V
 
-r = 2
+r = 106
 X = T[:, :r]
 
 
 
 # Create an instance of the DBSCAN algorithm
-dbscan = DBSCAN(eps=0.4, min_samples=5)
+dbscan = DBSCAN(eps=0.7878, min_samples=15)
 
 # Fit the data to the DBSCAN algorithm
 dbscan.fit(X)

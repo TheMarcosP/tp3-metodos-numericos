@@ -50,7 +50,7 @@ def expand_cluster(X, labels, point_idx, neighbors, cluster_id, eps, min_samples
                 neighbors = np.concatenate((neighbors, new_neighbors))
         i += 1
 
-def plot_dbsan(X, labels):
+def plot_dbscan(X, labels, filename):
 
     # Number of clusters in labels, ignoring noise if present.
     n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
@@ -72,21 +72,11 @@ def plot_dbsan(X, labels):
         # ax.scatter(xyz[:, 0], xyz[:, 1], xyz[:, 2], c=tuple(col), edgecolors='k', s=50) #3d
         ax.scatter(xyz[:, 0], xyz[:, 1], c=tuple(col), edgecolors='k', s=50) #2d
 
-    ax.set_title('Estimated number of clusters: %d' % n_clusters_)
+    print('Estimated number of clusters: %d' % n_clusters_)
     print("Estimated number of noise points: %d" % n_noise_)
 
     # Calculate the centroids of each cluster
-    centroids = []
-    for i in range(1, n_clusters_+1):
-        cluster = []
-        for j in range(len(labels)):
-            if labels[j] == i:
-                cluster.append(X[j])
-        cluster = np.array(cluster)
-        centroid = np.mean(cluster, axis=0)
-        centroids.append(centroid)
-
-    centroids = np.array(centroids)
+    centroids = compute_centroids(X, labels)
 
     # Plot the centroids
     for i in range(len(centroids)):
@@ -94,8 +84,11 @@ def plot_dbsan(X, labels):
         # ax.scatter(centroids[i][0], centroids[i][1], centroids[i][2], c='red', marker='X',s=200, zorder=10) # 3d
         ax.scatter(centroids[i][0], centroids[i][1], c='red', marker='X', s=200) # 2d
 
-    plt.show()
+    plt.savefig(filename, format='pdf', dpi = 1200)
 
+
+def count_points_in_clusters(labels):
+    n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
     # Count the number of points in each cluster
     for i in range(1, n_clusters_+1):
         count = 0
@@ -124,12 +117,51 @@ def find_best_params(X, epsilons, min_samples):
                 continue
 
             score = silhouette_score(X, labels)
-            print("score:",score,"with params:", (eps, min_sample))
+            print("score:",score,"with params:", (eps, min_sample), "number of clusters: ", num_clusters)
 
             if score > best_score:
                 best_score = score
                 best_params = (eps, min_sample)
     return best_params
+
+
+def compute_centroids(X, labels):
+
+    n_clusters_ = len(set(labels)) - (1 if -1 in labels else 0)
+    centroids = []
+    for i in range(1, n_clusters_+1):
+        cluster = []
+        for j in range(len(labels)):
+            if labels[j] == i:
+                cluster.append(X[j])
+        cluster = np.array(cluster)
+        centroid = np.mean(cluster, axis=0)
+        centroids.append(centroid)
+
+    centroids = np.array(centroids)
+    return centroids
+
+
+def cluster_points(X, centroids):
+    """given the data points and the centroids, assign each point to the closest centroid
+    """
+    labels = []
+    for i in range(len(X)):
+        distances = []
+        for j in range(len(centroids)):
+            distances.append(np.linalg.norm(X[i] - centroids[j]))
+        labels.append(np.argmin(distances)+1)
+    return labels
+
+def calculate_avg_distance(X):
+    """aproximate the avg distance between points"""
+
+    distances = []
+    for i in range(len(X)):
+        for j in range(i+1, len(X)):
+            distances.append(np.linalg.norm(X[i] - X[j]))
+    return np.mean(distances)
+
 
 
 def main():
@@ -145,36 +177,94 @@ def main():
 
     A = np.array(array, dtype=np.float64)
 
-    C = (np.transpose(A)) @ A  # matriz de covarianza
-    eigenvalues, eigenvectors = np.linalg.eig(C)
-    V = np.array(eigenvectors)
-    TT= A @ V
+    # print(A.shape)
 
-    r = 2  # Use 3d / 2d
-    TT = TT[:, :r]
+    # C = (np.transpose(A)) @ A  # matriz de covarianza
+    # eigenvalues, eigenvectors = np.linalg.eig(C)
+    # V = np.array(eigenvectors)
+    # x = A @ V
+
+    for d in [4]:
+
+        # A shape is (2000,106)
+       
+        #calculo el promedio de cada fila
+        A_mean = np.mean(A, axis=0)
+
+        # centro los datos
+        X_centered = A - A_mean
+
+        # hago SVD
+        U, S, Vt = np.linalg.svd(X_centered)
+
+        top_d_singular_vectors = Vt[:d].T
+
+        # Project the centered data onto the new reduced-dimensional space
+        a = np.dot(X_centered, top_d_singular_vectors)
+
+        # epsilons = np.linspace(1, 4, num=20)
+        # print("epsilons: ", epsilons)
+        # min_samples = np.arange(10, 50, step=5)
+        # print("min_samples: ", min_samples)
+        # # # # epsilons = np.array([0.7878571428571429, 0.8571428571428572])
+        # # # min_samples = np.array([2,10,15,20])
+
+        # best_eps, best_min_sample = find_best_params(a, epsilons, min_samples)
+        # print("Best parameters:", best_eps, best_min_sample)
+
+
+        # uso los mejores para plotear
+        labels = dbscan(a, 1.542105, 31)
+        # print(f"para {d} dimensiones, con epsilon y min samples = {best_eps, best_min_sample} ")
+        count_points_in_clusters(labels)
+        plot_dbscan(a, labels, "dbscan2d.pdf")
+
+        # use the centroids to find the clusters
+        # centroids = compute_centroids(a, labels)
+        # labels = cluster_points(a, centroids)
+        # count_points_in_clusters(labels)
+        # plot_dbscan(a, labels, "CentroidsClustering.pdf")
+
+        # avg_distance = calculate_avg_distance(a)
+        # print("avg distance:", avg_distance)
 
 
 
-    # epsilons = np.linspace(0.01, 1, num=15)
-    # min_samples = np.arange(2, 20, step=3)
-    # # epsilons = np.array([0.1, 0.7878, 1])
-    # # min_samples = np.array([2, 8, 11, 14])
+#con la nueva forma de pca
 
-    # best_eps, best_min_sample = find_best_params(TT, epsilons, min_samples)
-    # print("Best parameters:", best_eps, best_min_sample)
+# para 10 dimensiones, con epsilon y min samples = (2.7368421052631575, 35) 
+# Cluster 1 has 707 points
+# Cluster 2 has 675 points
 
 
-    # uso los mejores para plotear
-    labels = dbscan(TT, 0.7878571428571429, 14)
-    plot_dbsan(TT, labels)
+# viejo
+# dimensiones, epsilon, min neighbors, cluster 1, cluster 2
+# 2, 0.685714, 14, 1002, 998
+# 3, 0.955555, 14, 991, 991
+# 4, 1.366666, 31,976, 961
+# 5, 1.542105, 31, 918, 893
+# 6, 1.25, 20, 975, 967
+# 7, 1.357142, 10, 944, 922
+# 8, 1.785714, 35, 850, 812
+# 9, 1.785714, 10, 813, 795
+# 10, 1.785714, 10, 813, 795
+# 11, 1.785714, 10, 813, 795
+# 12, 2.0, 15, 742, 744
+# 13, 2.571428, 44, 728, 722
 
-
-
-
-
-
-
-
+# r, eps, min_samples, cluster1, cluster2
+# 2,
+# 3,
+# 4, 0.7878571428571429, 20, 1000, 1000
+# 5, 1.0357142857142856, 20, 997, 983
+# 6, 1.25, 20, 975, 967
+# 7, 1.3571428571428572, 10, 944, 922
+# 8, 1.7857142857142856, 35, 850, 812
+# 9, 1.7857142857142856, 10, 813, 795
+# 10, 1.7857142857142856, 10, 813, 795
+# 11, 1.7857142857142856, 10, 813, 795
+# 12, 2.0, 15, 742, 744
+# 13, 2.571428, 44, 728, 722
 
 # import itertools
 
